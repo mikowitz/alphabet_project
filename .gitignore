@@ -18,3 +18,7 @@ erl_crash.dump
 
 # Also ignore archive artifacts (built via "mix archive.build").
 *.ez
+
+processing/GraphParser/data/bw/
+processing/GraphParser/data/with_graph_line/
+processing/GraphParser/data/with_x_axis/
