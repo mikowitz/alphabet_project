@@ -16,22 +16,25 @@ defmodule PolyrhythmGenerator.V5 do
     end)
   end
 
-  def letter_part(letter, pulse) do
-    least_frequent = case pulse do
-      "z" -> "q"
-      _ -> "z"
-    end
-    case letter do
-      ^least_frequent -> least_frequent_part_to_lily(letter, pulse)
-      _               -> letter_part_to_lily(letter, pulse)
-    end
+  def letter_measures(letter, pulse) do
+    processed_letter_part(letter, pulse)
+    |> Enum.map(fn {{n, d}, events} ->
+      %Measure{
+        time_signature: nil, tuplet: {n, d},
+        events: events
+      }
+    end)
   end
 
-  def raw_pulse_part(letter) do
+  defp raw_pulse_part(letter) do
     ordered_coordinates(letter)
     |> Enum.map(fn {_, c} ->
       {{c, 8}, Stream.cycle(["c8"]) |> Enum.take(c)}
     end)
+  end
+
+  def letter_part(letter, pulse) do
+    letter_measures(letter, pulse)
   end
 
   def raw_letter_part(letter, pulse) do
@@ -163,9 +166,10 @@ defmodule PolyrhythmGenerator.V5 do
 
   def apply_row([], _row_index, acc), do: acc
   def apply_row([measure|measures], row_index, acc) do
-    {{n, d}, notes} = measure
+    %Measure{tuplet: {n, d}, events: notes} = measure
     {new_notes, next_index} = apply_row_to_measure(notes, row_index, [])
-    apply_row(measures, next_index, acc ++ [{{n, d}, new_notes}])
+    new_measure = %Measure{measure | events: new_notes}
+    apply_row(measures, next_index, acc ++ [new_measure])
   end
 
   def apply_row_to_measure([], index, acc), do: {acc, index}
@@ -177,32 +181,38 @@ defmodule PolyrhythmGenerator.V5 do
      acc ++ [Regex.replace(~r/c/, n, Enum.at(@pitches, rem(index, length(@pitches))))])
   end
 
-  def least_frequent_part_to_lily(letter, pulse) do
+  def letter_part_to_lily(measures, letter, pulse) do
+    least_frequent = case pulse do
+      "z" -> "q"
+      _   -> "z"
+    end
+    case letter do
+      ^least_frequent -> least_frequent_part_to_lily(measures, letter, pulse)
+      _               -> _letter_part_to_lily(measures, letter, pulse)
+    end
+  end
+
+  def least_frequent_part_to_lily(measures, letter, pulse) do
     modulation_map = phoneme_modulation_points(letter) |> Enum.into(Map.new)
-    part = letter |> @dynamics_generator.measures(pulse)
+    part = measures
     |> apply_row(0, [])
     |> Enum.with_index
-    |> Enum.map(fn {{{n, d}, notes}, i} ->
-      notes = case Map.get(modulation_map, i) do
-        nil -> notes
-        phoneme ->
-          [note|ns] = notes
-          [note <> "^\\markup \"[#{phoneme}]\""|ns]
-      end
-      %Measure{
-        time_signature: nil, tuplet: {n, d},
-        events: notes
-      }
+    #|> Enum.map(fn {{{n, d}, notes}, i} ->
+    |> Enum.map(fn {measure, i} ->
+      %Measure{tuplet: {n, d}, events: notes} = measure
+      phoneme = Map.get(modulation_map, i)
+      %Measure{ measure | phoneme: phoneme }
     end)
   end
 
-  def letter_part_to_lily(letter, pulse) do
+  def _letter_part_to_lily(measures, letter, pulse) do
     {^letter, pitches} = Enum.find(measure_pitches(pulse), fn {l, _} ->
       l == letter
     end)
     modulation_map = phoneme_modulation_points(letter) |> Enum.into(Map.new)
-    part = letter |> @dynamics_generator.measures(pulse)
-    |> Enum.with_index |> Enum.map(fn {{{n, d}, notes}, i} ->
+    part = measures
+    |> Enum.with_index
+    |> Enum.map(fn {measure = %Measure{tuplet: {n, d}, events: notes}, i} ->
       pitch = Enum.at(pitches, i)
       notes = Enum.map(notes, fn n ->
         case n do
@@ -210,16 +220,8 @@ defmodule PolyrhythmGenerator.V5 do
           note -> Regex.replace(~r/c/, note, pitch)
         end
       end)
-      notes = case Map.get(modulation_map, i) do
-        nil -> notes
-        phoneme ->
-          [note|ns] = notes
-          [note <> "^\\markup \"[#{phoneme}]\""|ns]
-      end
-      %Measure{
-        time_signature: nil, tuplet: {n, d},
-        events: notes
-      }
+      phoneme = Map.get(modulation_map, i)
+      %Measure{ measure | phoneme: phoneme, events: notes }
     end)
   end
 
@@ -264,7 +266,3 @@ defmodule PolyrhythmGenerator.V5 do
     }
   end
 end
-
-
-
-
