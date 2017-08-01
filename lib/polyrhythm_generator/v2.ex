@@ -1,21 +1,24 @@
 defmodule PolyrhythmGenerator.V2 do
-  @letters ~w(a b c d e f g h i j k l m n o p q r s t u v w x y z)
-
   import PolyrhythmGenerator
 
   def pulse_part(letter) do
-    generate_part(letter, fn _ ->
-      "\\time 4/4 c16[ c c c c c c c c c c c c c c c]"
+    ordered_coordinates(letter)
+    |> Enum.map(fn _ ->
+      %Measure{
+        time_signature: {4, 4}, tuplet: nil,
+        events: (Stream.cycle(["c16"]) |> Enum.take(16))
+      }
     end)
   end
 
   def letter_part(letter, pulse) do
     music = part_ratios(letter, pulse)
     |> Enum.map(fn n ->
-      "\\tuplet #{n}/16 \\repeat unfold #{n} { c16 }"
-    end) |> Enum.join("\n")
-    write_lilypond_file(letter, music)
-    {:ok, letter}
+      %Measure{
+        time_signature: nil, tuplet: {n, 16},
+        events: (Stream.cycle(["c16"]) |> Enum.take(n))
+      }
+    end)
   end
 
   def pulse_ratios(letter) do

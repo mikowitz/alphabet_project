@@ -2,16 +2,18 @@ defmodule PolyrhythmGenerator.V5 do
   @letters ~w(a b c d e f g h i j k l m n o p q r s t u v w x y z)
   @pitches ~w( c g eqf btqf d fqs aqf bqf ctqs ef eqs ftqs atqf a cqs cs etqf e f fs af bf b bqs )
   @dynamics_generator DynamicsGenerator.V1
+  @pitch_generator PitchGenerator.V2
 
   import PolyrhythmGenerator
 
   def pulse_part(letter) do
     part = letter |> raw_pulse_part
     |> Enum.map(fn {{n, d}, notes} ->
-      "\\time #{n}/#{d} #{Enum.join(notes, " ")}"
-    end) |> Enum.join("\n")
-    write_lilypond_file(letter, part)
-    {:ok, letter}
+      %Measure{
+        time_signature: {n, d}, tuplet: nil,
+        events: notes
+      }
+    end)
   end
 
   def letter_part(letter, pulse) do
@@ -52,15 +54,6 @@ defmodule PolyrhythmGenerator.V5 do
     process_part(raw_part, modulo_tuple)
   end
 
-  def letter_part_to_lily(letter, pulse) do
-    part = letter |> processed_letter_part(pulse)
-    |> Enum.map(fn {{n, d}, notes} ->
-      "\\tuplet #{n}/#{d} { #{Enum.join(notes, " ")} }"
-    end) |> Enum.join("\n")
-    write_lilypond_file(letter, part)
-    {:ok, letter}
-  end
-
   def process_part(raw, modulo), do: _process_part(raw, modulo, 0, [])
 
   def _process_part([], _, _, processed), do: Enum.reverse(processed)
@@ -93,9 +86,13 @@ defmodule PolyrhythmGenerator.V5 do
     pulse_coords = ordered_coordinates(pulse) |> Enum.into(%{})
     music = part_ratios(letter, pulse)
     |> Enum.map(fn {i, r} ->
-    pulse_count = pulse_coords[i]
-    c = round(r * pulse_count)
-    "\\tuplet #{c}/#{pulse_count} { \\repeat unfold #{c} { c8 } }"
+      pulse_count = pulse_coords[i]
+      c = round(r * pulse_count)
+      measure = %Measure{
+        time_signature: nil, tuplet: {c, pulse_count},
+        events: (Stream.cycle(["c8"]) |> Enum.take(c))
+      }
+      Measure.to_lily(measure)
     end) |> Enum.join("\n")
    write_lilypond_file(letter, music)
   end
@@ -149,7 +146,7 @@ defmodule PolyrhythmGenerator.V5 do
 
   def pulse_part_to_lily(letter) do
     modulation_map = phoneme_modulation_points(letter) |> Enum.into(Map.new)
-    part = letter |> @polyrhythm_generator.raw_pulse_part
+    part = letter |> pulse_part
     |> Enum.with_index
     |> Enum.map(fn {{{n, d}, notes}, i} ->
       notes = case Map.get(modulation_map, i) do
@@ -192,10 +189,11 @@ defmodule PolyrhythmGenerator.V5 do
           [note|ns] = notes
           [note <> "^\\markup \"[#{phoneme}]\""|ns]
       end
-      "\\tuplet #{n}/#{d} { #{Enum.join(notes, " ")} }"
-    end) |> Enum.join("\n")
-    write_lilypond_file(letter, part)
-    {:ok, letter}
+      %Measure{
+        time_signature: nil, tuplet: {n, d},
+        events: notes
+      }
+    end)
   end
 
   def letter_part_to_lily(letter, pulse) do
@@ -218,11 +216,11 @@ defmodule PolyrhythmGenerator.V5 do
           [note|ns] = notes
           [note <> "^\\markup \"[#{phoneme}]\""|ns]
       end
-
-      "\\tuplet #{n}/#{d} { #{Enum.join(notes, " ")} }"
-    end) |> Enum.join("\n")
-    write_lilypond_file(letter, part)
-    {:ok, letter}
+      %Measure{
+        time_signature: nil, tuplet: {n, d},
+        events: notes
+      }
+    end)
   end
 
   def measure_pitches(pulse) do

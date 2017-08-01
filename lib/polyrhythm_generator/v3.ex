@@ -1,33 +1,36 @@
 defmodule PolyrhythmGenerator.V3 do
-  @letters ~w(a b c d e f g h i j k l m n o p q r s t u v w x y z)
-
   import PolyrhythmGenerator
 
   def pulse_part(letter) do
-    generate_part(letter, fn _ ->
-      "\\time 4/4 c16[ c c c c c c c c c c c c c c c]"
+    ordered_coordinates(letter)
+    |> Enum.map(fn _ ->
+      %Measure{
+        time_signature: {4, 4}, tuplet: nil,
+        events: (Stream.cycle(["c16"]) |> Enum.take(16))
+      }
     end)
   end
 
   def letter_part(letter, pulse) do
-    music = part_ratios(letter, pulse)
+    part_ratios(letter, pulse)
     |> Enum.map(fn n ->
-    "\\time 4/4 \\tuplet #{n}/16 \\repeat unfold #{n} { c16 }"
-    end) |> Enum.join("\n")
-    write_lilypond_file(letter, music)
-    {:ok, letter}
+      %Measure{
+        time_signature: nil, tuplet: {n, 16},
+        events: (Stream.cycle(["c16"]) |> Enum.take(n))
+      }
+    end)
   end
 
   def pulse_ratios(letter) do
     coordinates = ordered_coordinates(letter)
-    {index, max_y} = Enum.max_by(coordinates, fn {x, y} -> y end)
+    {_index, max_y} = Enum.max_by(coordinates, fn {_x, y} -> y end)
     Enum.map(coordinates, fn {x, y} -> {x, reduce(y, max_y)} end)
   end
 
   def part_ratios(letter, pulse) do
     pulse = pulse_ratios(pulse)
     coordinates = ordered_coordinates(letter)
-    {index, max_y} = Enum.max_by(coordinates, fn {x, y} -> y end)
+    {_index, max_y} = Enum.max_by(coordinates, fn {_, y} -> y end)
     pulse = Enum.into(pulse, %{})
     coords = Enum.into(Enum.map(coordinates, fn {x, y} -> {x, reduce(y, max_y)} end), %{})
     ratios = Enum.sort(Map.keys(coords))

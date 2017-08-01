@@ -6,7 +6,8 @@ defmodule PolyrhythmGenerator do
 
 #{letter}Music = {
   \\clef "bass"
-  #{music}
+#{music}
+  \\bar "|."
 }
 """)
   end

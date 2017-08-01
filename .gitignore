@@ -22,6 +22,7 @@ erl_crash.dump
 processing/GraphParser/data/bw/
 processing/GraphParser/data/with_graph_line/
 processing/GraphParser/data/with_x_axis/
+score/score.pdf
 score/a.ly
 score/b.ly
 score/c.ly

@@ -9,17 +9,12 @@ defmodule DynamicsGenerator.V1 do
     @polyrhythm_generator.processed_letter_part(letter, pulse)
   end
 
-  def dynamic_determining_boundaries do
-  end
-
-  def measures(letter, pulse) do
-    processed_part(letter, pulse)
+  def measures(raw_measures) do
+    raw_measures
     |> Enum.with_index
-    |> Enum.map(fn {{tuplet, events = [first_event | rest_events]}, i} ->
-      measure = %Measure{tuplet: tuplet, events: events}
+    |> Enum.map(fn {measure, i} ->
       density = Measure.density(measure)
-      new_events = [first_event <> dynamic_for_float(density, i) | rest_events]
-      {tuplet, new_events}
+      %Measure{measure | dynamic: dynamic_for_float(density, i)}
     end)
   end
 
