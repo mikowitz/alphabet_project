@@ -42,7 +42,6 @@ defmodule ScoreGenerator do
   def apply_row([measure|measures], row_index, acc) do
     {{n, d}, notes} = measure
     {new_notes, next_index} = apply_row_to_measure(notes, row_index, [])
-    IO.puts "#{row_index} - #{next_index}"
     apply_row(measures, next_index, acc ++ [{{n, d}, new_notes}])
   end
 
@@ -105,7 +104,7 @@ defmodule ScoreGenerator do
   end
 
   def write_lilypond_file(letter, music) do
-    File.write("#{letter}.ly", """
+    File.write("score/#{letter}.ly", """
     \\version "2.19.61"
     \\language "english"
 
@@ -117,20 +116,20 @@ defmodule ScoreGenerator do
   end
 
   def consonant_phoneme_modulation_points(letter) do
-    @polyrhythm_generator.ordered_coordinates(letter)
+    PolyrhythmGenerator.ordered_coordinates(letter)
     |> Enum.sort_by(fn {_, y} -> y end)
     |> Enum.with_index
-    |> Enum.filter(fn {{x, y}, i} -> rem(i, 20) == 0 || x == 0 end)
+    |> Enum.filter(fn {{x, _}, i} -> rem(i, 20) == 0 || x == 0 end)
     |> Enum.zip(Stream.cycle(["ei", "i:", "ai", "ou", "u:"]))
     |> Enum.map(fn {{{x, _}, _}, vowel} -> {x, vowel} end)
     |> Enum.sort
   end
 
   def vowel_phoneme_modulation_points(letter) do
-    @polyrhythm_generator.ordered_coordinates(letter)
+    PolyrhythmGenerator.ordered_coordinates(letter)
     |> Enum.sort_by(fn {_, y} -> y end)
     |> Enum.with_index
-    |> Enum.filter(fn {{x, y}, i} -> rem(i, 20) == 0 || x == 0 end)
+    |> Enum.filter(fn {{x, _}, i} -> rem(i, 20) == 0 || x == 0 end)
     |> Enum.map(fn {{x, _}, _} -> x end)
     |> Enum.sort
     |> Enum.zip(Stream.cycle(Map.get(vowel_phoneme_pairs(), letter)))
