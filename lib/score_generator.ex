@@ -1,5 +1,5 @@
 defmodule ScoreGenerator do
-  @letters ~w(a b c d e f g h i j k l m n o p q r s t u v w x y z)
+  @alphabet ~w(a b c d e f g h i j k l m n o p q r s t u v w x y z)
   @pitches ~w( c g eqf btqf d fqs aqf bqf ctqs ef eqs ftqs atqf a cqs cs etqf e f fs af bf b bqs )
   @polyrhythm_generator PolyrhythmGenerator.V5
   @pitch_generator PitchGenerator.V2
@@ -10,11 +10,11 @@ defmodule ScoreGenerator do
       "z" -> "q"
       _ -> "z"
     end
-    Enum.map(@letters, fn letter ->
+    File.mkdir("score")
+    Enum.map(@alphabet, fn letter ->
       case letter do
-        ^pulse          -> pulse_part_to_lily(pulse)
-        ^least_frequent -> least_frequent_part_to_lily(letter, pulse)
-        _               -> letter_part_to_lily(letter, pulse)
+        ^pulse -> @polyrhythm_generator.pulse_part(pulse)
+        _      -> @polyrhythm_generator.letter_part(letter, pulse)
       end
     end)
   end
@@ -36,9 +36,7 @@ defmodule ScoreGenerator do
     {:ok, letter}
   end
 
-  def apply_row([], _row_index, acc) do
-    acc
-  end
+  def apply_row([], _row_index, acc), do: acc
   def apply_row([measure|measures], row_index, acc) do
     {{n, d}, notes} = measure
     {new_notes, next_index} = apply_row_to_measure(notes, row_index, [])

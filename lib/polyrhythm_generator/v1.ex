@@ -3,24 +3,18 @@ defmodule PolyrhythmGenerator.V1 do
 
   import PolyrhythmGenerator
 
-  def generate_parts(pulse) do
-    File.mkdir("score")
-    pulse_coords = ordered_coordinates(pulse)
-    Enum.map(@letters, fn letter ->
-      case letter == pulse do
-        true -> pulse_part(pulse)
-        false -> letter_part(letter, pulse_coords)
-      end
-    end)
-  end
-
   def pulse_part(letter) do
     generate_part(letter, fn {_, c} ->
+      measure = %Measure{
+        time_signature: {c, 8}, tuplet: nil,
+        events: (Stream.cycle(["c8"]) |> Enum.take(c))
+      }
       "\\time #{c}/8 \\repeat unfold #{c} { c8 }"
     end)
   end
 
-  def letter_part(letter, pulse_coords) do
+  def letter_part(letter, pulse) do
+    pulse_coords = ordered_coordinates(pulse)
     generate_part(letter, fn {i, c} ->
       {_, pulse_count} = Enum.find(pulse_coords, fn {pi, _} -> pi == i end)
       "\\tuplet #{c}/#{pulse_count} { \\repeat unfold #{c} { c8 } }"

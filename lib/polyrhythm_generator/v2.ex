@@ -3,15 +3,6 @@ defmodule PolyrhythmGenerator.V2 do
 
   import PolyrhythmGenerator
 
-  def generate_parts(pulse) do
-    Enum.map(@letters, fn letter ->
-      case letter == pulse do
-        true -> pulse_part(pulse)
-        false -> letter_part(letter, pulse)
-      end
-    end)
-  end
-
   def pulse_part(letter) do
     generate_part(letter, fn _ ->
       "\\time 4/4 c16[ c c c c c c c c c c c c c c c]"
