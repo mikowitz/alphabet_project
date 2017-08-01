@@ -55,4 +55,3 @@ defmodule DynamicsGenerator.V1 do
     end
   end
 end
-
