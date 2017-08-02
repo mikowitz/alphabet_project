@@ -1,5 +1,6 @@
 defmodule ScoreGenerator do
   @alphabet ~w(a b c d e f g h i j k l m n o p q r s t u v w x y z)
+  @pitches ~w( c g eqf btqf d fqs aqf bqf ctqs ef eqs ftqs atqf a cqs cs etqf e f fs af bf b bqs )
   @polyrhythm_generator PolyrhythmGenerator.V5
   @dynamics_generator DynamicsGenerator.V1
 

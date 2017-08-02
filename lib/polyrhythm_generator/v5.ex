@@ -1,13 +1,11 @@
 defmodule PolyrhythmGenerator.V5 do
-  @letters ~w(a b c d e f g h i j k l m n o p q r s t u v w x y z)
   @pitches ~w( c g eqf btqf d fqs aqf bqf ctqs ef eqs ftqs atqf a cqs cs etqf e f fs af bf b bqs )
-  @dynamics_generator DynamicsGenerator.V1
   @pitch_generator PitchGenerator.V2
 
   import PolyrhythmGenerator
 
   def pulse_part(letter) do
-    part = letter |> raw_pulse_part
+    letter |> raw_pulse_part
     |> Enum.map(fn {{n, d}, notes} ->
       %Measure{
         time_signature: {n, d}, tuplet: nil,
@@ -85,21 +83,6 @@ defmodule PolyrhythmGenerator.V5 do
     end
   end
 
-  def letter_part(letter, pulse) do
-    pulse_coords = ordered_coordinates(pulse) |> Enum.into(%{})
-    music = part_ratios(letter, pulse)
-    |> Enum.map(fn {i, r} ->
-      pulse_count = pulse_coords[i]
-      c = round(r * pulse_count)
-      measure = %Measure{
-        time_signature: nil, tuplet: {c, pulse_count},
-        events: (Stream.cycle(["c8"]) |> Enum.take(c))
-      }
-      Measure.to_lily(measure)
-    end) |> Enum.join("\n")
-   write_lilypond_file(letter, music)
-  end
-
   def pulse_ratios(letter) do
     coordinates = ordered_coordinates(letter)
     {_index, max_y} = Enum.max_by(coordinates, fn {_, y} -> y end)
@@ -147,26 +130,9 @@ defmodule PolyrhythmGenerator.V5 do
     end) |> Enum.into(%{})
   end
 
-  def pulse_part_to_lily(letter) do
-    modulation_map = phoneme_modulation_points(letter) |> Enum.into(Map.new)
-    part = letter |> pulse_part
-    |> Enum.with_index
-    |> Enum.map(fn {{{n, d}, notes}, i} ->
-      notes = case Map.get(modulation_map, i) do
-        nil -> notes
-        phoneme ->
-          [note|ns] = notes
-          [note <> "^\\markup \"[#{phoneme}]\""|ns]
-      end
-      "\\time #{n}/#{d} #{Enum.join(notes, " ")}"
-    end) |> Enum.join("\n")
-    write_lilypond_file(letter, part)
-    {:ok, letter}
-  end
-
   def apply_row([], _row_index, acc), do: acc
   def apply_row([measure|measures], row_index, acc) do
-    %Measure{tuplet: {n, d}, events: notes} = measure
+    %Measure{events: notes} = measure
     {new_notes, next_index} = apply_row_to_measure(notes, row_index, [])
     new_measure = %Measure{measure | events: new_notes}
     apply_row(measures, next_index, acc ++ [new_measure])
@@ -192,14 +158,12 @@ defmodule PolyrhythmGenerator.V5 do
     end
   end
 
-  def least_frequent_part_to_lily(measures, letter, pulse) do
+  def least_frequent_part_to_lily(measures, letter, _pulse) do
     modulation_map = phoneme_modulation_points(letter) |> Enum.into(Map.new)
-    part = measures
+    measures
     |> apply_row(0, [])
     |> Enum.with_index
-    #|> Enum.map(fn {{{n, d}, notes}, i} ->
     |> Enum.map(fn {measure, i} ->
-      %Measure{tuplet: {n, d}, events: notes} = measure
       phoneme = Map.get(modulation_map, i)
       %Measure{ measure | phoneme: phoneme }
     end)
@@ -210,9 +174,9 @@ defmodule PolyrhythmGenerator.V5 do
       l == letter
     end)
     modulation_map = phoneme_modulation_points(letter) |> Enum.into(Map.new)
-    part = measures
+    measures
     |> Enum.with_index
-    |> Enum.map(fn {measure = %Measure{tuplet: {n, d}, events: notes}, i} ->
+    |> Enum.map(fn {measure = %Measure{events: notes}, i} ->
       pitch = Enum.at(pitches, i)
       notes = Enum.map(notes, fn n ->
         case n do

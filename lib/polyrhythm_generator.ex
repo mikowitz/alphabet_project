@@ -1,29 +1,8 @@
 defmodule PolyrhythmGenerator do
-  def write_lilypond_file(letter, music) do
-    File.write("score/#{letter}.ly", """
-\\version "2.19.61"
-\\language "english"
-
-#{letter}Music = {
-  \\clef "bass"
-#{music}
-  \\bar "|."
-}
-""")
-  end
-
   def ordered_coordinates(letter) do
     {:ok, json} = File.read("processing/GraphParser/data/coordinates/#{letter}.json")
     letter_coordinates = Poison.Parser.parse!(json) |> Enum.map(&List.to_tuple/1) |> Enum.into(%{})
     Enum.sort_by(letter_coordinates, fn {i, _} -> i end)
-  end
-
-  def generate_part(letter, to_lily_func) do
-    str = ordered_coordinates(letter)
-    |> Enum.map(to_lily_func)
-    |> Enum.join("\n")
-    write_lilypond_file(letter, str)
-    {:ok, letter}
   end
 
   def frequencies do

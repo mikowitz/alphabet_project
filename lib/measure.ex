@@ -10,29 +10,32 @@ defmodule Measure do
     Enum.count(events, fn e -> e == "c8" end) / n
   end
 
-  def to_lily(measure = %__MODULE__{time_signature: {n, d}, events: events}) do
+  def to_lily(measure = %__MODULE__{time_signature: {n, d}}) do
     "  \\time #{n}/#{d} #{events_to_lily(measure)}"
   end
-  def to_lily(measure = %__MODULE__{tuplet: {n, d}, events: events}) do
+  def to_lily(measure = %__MODULE__{tuplet: {n, d}}) do
     "  \\tuplet #{n}/#{d} { #{events_to_lily(measure)} }"
   end
 
   def events_to_lily(%Measure{events: events, phoneme: nil, dynamic: nil}) do
-    Enum.join(events, " ")
+    events |> List.insert_at(1, "[") |> List.insert_at(-1, "]") |> Enum.join(" ")
   end
   def events_to_lily(%Measure{events: events, phoneme: phoneme, dynamic: nil}) do
     with [h|t] <- events do
-      [h <> "^\\markup \"[#{phoneme}]\""| t] |> Enum.join(" ")
+      [h <> "^\\markup \"[#{phoneme}]\""| t]
+      |> List.insert_at(1, "[") |> List.insert_at(-1, "]") |> Enum.join(" ")
     end
   end
   def events_to_lily(%Measure{events: events, phoneme: nil, dynamic: dynamic}) do
     with [h|t] <- events do
-      [h <> dynamic | t] |> Enum.join(" ")
+      [h <> dynamic | t]
+      |> List.insert_at(1, "[") |> List.insert_at(-1, "]") |> Enum.join(" ")
     end
   end
   def events_to_lily(%Measure{events: events, phoneme: phoneme, dynamic: dynamic}) do
     with [h|t] <- events do
-      [h <> dynamic <> "^\\markup \"[#{phoneme}]\"" | t] |> Enum.join(" ")
+      [h <> dynamic <> "^\\markup \"[#{phoneme}]\"" | t]
+      |> List.insert_at(1, "[") |> List.insert_at(-1, "]") |> Enum.join(" ")
     end
   end
 end

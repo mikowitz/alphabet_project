@@ -26,14 +26,14 @@ defmodule PolyrhythmGenerator.V4 do
 
   def pulse_ratios(letter) do
     coordinates = ordered_coordinates(letter)
-    {index, max_y} = Enum.max_by(coordinates, fn {x, y} -> y end)
+    {_index, max_y} = Enum.max_by(coordinates, fn {_x, y} -> y end)
     Enum.map(coordinates, fn {x, y} -> {x, reduce(y, max_y)} end)
   end
 
   def part_ratios(letter, pulse) do
     pulse = pulse_ratios(pulse)
     coordinates = ordered_coordinates(letter)
-    {index, max_y} = Enum.max_by(coordinates, fn {x, y} -> y end)
+    {_index, max_y} = Enum.max_by(coordinates, fn {_x, y} -> y end)
     pulse = Enum.into(pulse, Map.new)
     coords = Enum.into(Enum.map(coordinates, fn {x, y} -> {x, reduce(y, max_y)} end), %{})
     ratios = Enum.sort(Map.keys(coords))
