@@ -7,12 +7,6 @@ defmodule PolyrhythmGenerator.V5 do
   def pulse_part(letter) do
     modulation_map = phoneme_modulation_points(letter) |> Enum.into(Map.new)
     letter |> raw_pulse_part
-    |> Enum.map(fn {{n, d}, notes} ->
-      %Measure{
-        time_signature: {n, d}, tuplet: nil,
-        events: notes
-      }
-    end)
     |> Enum.with_index
     |> Enum.map(fn {measure, i} ->
       phoneme = Map.get(modulation_map, i)
@@ -20,7 +14,7 @@ defmodule PolyrhythmGenerator.V5 do
     end)
   end
 
-  def letter_measures(letter, pulse) do
+  def letter_part(letter, pulse) do
     processed_letter_part(letter, pulse)
     |> Enum.map(fn {{n, d}, events} ->
       %Measure{
@@ -33,13 +27,13 @@ defmodule PolyrhythmGenerator.V5 do
   defp raw_pulse_part(letter) do
     ordered_coordinates(letter)
     |> Enum.map(fn {_, c} ->
-      {{c, 8}, Stream.cycle(["c8"]) |> Enum.take(c)}
+      %Measure{
+        time_signature: {c, 8}, tuplet: nil,
+        events: Stream.cycle(["c8"]) |> Enum.take(c)
+      }
     end)
   end
 
-  def letter_part(letter, pulse) do
-    letter_measures(letter, pulse)
-  end
 
   def raw_letter_part(letter, pulse) do
     pulse_coords = ordered_coordinates(pulse) |> Enum.into(%{})
