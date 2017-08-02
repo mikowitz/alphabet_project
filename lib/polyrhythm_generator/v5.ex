@@ -5,12 +5,18 @@ defmodule PolyrhythmGenerator.V5 do
   import PolyrhythmGenerator
 
   def pulse_part(letter) do
+    modulation_map = phoneme_modulation_points(letter) |> Enum.into(Map.new)
     letter |> raw_pulse_part
     |> Enum.map(fn {{n, d}, notes} ->
       %Measure{
         time_signature: {n, d}, tuplet: nil,
         events: notes
       }
+    end)
+    |> Enum.with_index
+    |> Enum.map(fn {measure, i} ->
+      phoneme = Map.get(modulation_map, i)
+      %Measure{ measure | phoneme: phoneme }
     end)
   end
 
