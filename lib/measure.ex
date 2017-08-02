@@ -17,29 +17,21 @@ defmodule Measure do
     "  \\tuplet #{n}/#{d} { #{events_to_lily(measure)} }"
   end
 
-  def events_to_lily(%Measure{events: events, phoneme: nil, dynamic: nil}) do
-    events |> List.insert_at(1, "[") |> List.insert_at(-1, "]") |> Enum.join(" ")
-  end
-  def events_to_lily(%Measure{events: events, phoneme: phoneme, dynamic: nil}) do
-    with [h|t] <- events do
-      [h <> "^\\markup \"[#{phoneme}]\""| t]
-      |> add_beaming() |> Enum.join(" ")
-    end
-  end
-  def events_to_lily(%Measure{events: events, phoneme: nil, dynamic: dynamic}) do
-    with [h|t] <- events do
-      [h <> dynamic | t]
-      |> add_beaming() |> Enum.join(" ")
-    end
-  end
-  def events_to_lily(%Measure{events: events, phoneme: phoneme, dynamic: dynamic}) do
-    with [h|t] <- events do
-      [h <> dynamic <> "^\\markup \"[#{phoneme}]\"" | t]
-      |> add_beaming() |> Enum.join(" ")
+  def events_to_lily(measure = %__MODULE__{events: [h|t]}) do
+    with h <- h <> dynamic_markup(measure) <> phoneme_markup(measure) do
+      [h|t] |> add_beaming() |> Enum.join(" ")
     end
   end
 
   def add_beaming(events) do
     events |> List.insert_at(1, "[") |> List.insert_at(-1, "]")
   end
+
+  def phoneme_markup(%__MODULE__{phoneme: nil}), do: ""
+  def phoneme_markup(%__MODULE__{phoneme: phoneme}) do
+    ~s(^\\markup "[#{phoneme}]")
+  end
+
+  def dynamic_markup(%__MODULE__{dynamic: nil}), do: ""
+  def dynamic_markup(%__MODULE__{dynamic: dynamic}), do: dynamic
 end
