@@ -10,11 +10,21 @@ defmodule Measure do
     Enum.count(events, fn e -> e == "c8" end) / n
   end
 
+  def all_rests?(%__MODULE__{events: events}) do
+    Enum.all?(events, &(&1 == "r8"))
+  end
+
   def to_lily(measure = %__MODULE__{time_signature: {n, d}}) do
-    "  \\time #{n}/#{d} #{events_to_lily(measure)}"
+    case all_rests?(measure) do
+      true  -> "  \\time #{n}/#{d} R8 * #{n}"
+      false -> "  \\time #{n}/#{d} #{events_to_lily(measure)}"
+    end
   end
   def to_lily(measure = %__MODULE__{tuplet: {n, d}}) do
-    "  \\tuplet #{n}/#{d} { #{events_to_lily(measure)} }"
+    case all_rests?(measure) do
+      true  -> "  R8 * #{d}"
+      false -> "  \\tuplet #{n}/#{d} { #{events_to_lily(measure)} }"
+    end
   end
 
   def events_to_lily(measure = %__MODULE__{events: [h|t]}) do
