@@ -27,14 +27,19 @@ defmodule Measure do
     end
   end
 
-  def events_to_lily(measure = %__MODULE__{events: [h|t]}) do
-    with h <- h <> dynamic_markup(measure) <> phoneme_markup(measure) do
+  def events_to_lily(measure = %__MODULE__{events: events}) do
+    with  [h|t] <- reduce(events),
+          h <- h <> dynamic_markup(measure) <> phoneme_markup(measure)
+    do
       [h|t] |> add_beaming() |> Enum.join(" ")
     end
   end
 
   def add_beaming(events) do
-    events |> List.insert_at(1, "[") |> List.insert_at(-1, "]")
+    case Enum.all?(events, &String.ends_with?(&1, "8")) do
+      true -> events |> List.insert_at(1, "[") |> List.insert_at(-1, "]")
+      false -> events
+    end
   end
 
   def phoneme_markup(%__MODULE__{phoneme: nil}), do: ""
@@ -44,4 +49,18 @@ defmodule Measure do
 
   def dynamic_markup(%__MODULE__{dynamic: nil}), do: ""
   def dynamic_markup(%__MODULE__{dynamic: dynamic}), do: dynamic
+
+  def reduce(events), do: reduce(events, [])
+  def reduce([], acc), do: Enum.reverse(acc)
+  def reduce(["r8", "r8" | t], acc) do
+    reduce(t, ["r4" | acc])
+  end
+  def reduce([n, "r8" | t], acc) do
+    with n <- Regex.replace(~r/8/, n, "4") do
+      reduce(t, [n | acc])
+    end
+  end
+  def reduce([h|t], acc) do
+    reduce(t, [h|acc])
+  end
 end
