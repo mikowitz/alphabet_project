@@ -22,15 +22,14 @@ defmodule MeasureTest do
       measure = %Measure{tuplet: {7, 8}, events: ["c8", "c8", "c8", "c8", "c8", "c8", "c8"]}
       assert to_lily(measure) == "  \\tuplet 7/8 { c8 [ c8 c8 c8 c8 c8 c8 ] }"
     end
+  end
 
-    test "reduces note + rests" do
-      measure = %Measure{time_signature: {3, 8}, events: ["c8", "r8", "d8"]}
-      assert to_lily(measure) == "  \\time 3/8 c4 d8"
-    end
-
-    test "reduces rests" do
-      measure = %Measure{time_signature: {3, 8}, events: ["r8", "r8", "c8"]}
-      assert to_lily(measure) == "  \\time 3/8 r4 c8"
+  describe "density/1" do
+    test "it returns correctly" do
+      measure = %Measure{tuplet: {10, 8},
+        events: ["c8", "r8", "c8", "r8", "c8", "r8", "c8", "r8", "c8", "r8"]
+      }
+      assert density(measure) == 0.5
     end
   end
 end
