@@ -194,13 +194,15 @@ defmodule PolyrhythmGenerator.V5 do
   end
 
   def consonant_phoneme_modulation_points(letter) do
-    PolyrhythmGenerator.ordered_coordinates(letter)
-    |> Enum.sort_by(fn {_, y} -> y end)
-    |> Enum.with_index
-    |> Enum.filter(fn {{x, _}, i} -> rem(i, 20) == 0 || x == 0 end)
-    |> Enum.zip(Stream.cycle(["ei", "i:", "ai", "ou", "u:"]))
-    |> Enum.map(fn {{{x, _}, _}, vowel} -> {x, vowel} end)
-    |> Enum.sort
+    with consonant_phoneme <- Map.get(consonant_phonemes(), letter, letter) do
+      PolyrhythmGenerator.ordered_coordinates(letter)
+      |> Enum.sort_by(fn {_, y} -> y end)
+      |> Enum.with_index
+      |> Enum.filter(fn {{x, _}, i} -> rem(i, 20) == 0 || x == 0 end)
+      |> Enum.zip(Stream.cycle(["ei", "i:", "ai", "ou", "u:"]))
+      |> Enum.map(fn {{{x, _}, _}, vowel} -> {x, consonant_phoneme <> vowel} end)
+      |> Enum.sort
+    end
   end
 
   def vowel_phoneme_modulation_points(letter) do
@@ -227,6 +229,12 @@ defmodule PolyrhythmGenerator.V5 do
       "i" => ["i", "ai"],
       "o" => ["o", "ou"],
       "u" => ["ʌ", "u:"]
+    }
+  end
+
+  def consonant_phonemes do
+    %{
+      "c" => "k", "j" => "d͡ʒ", "q" => "kʰ", "r" => "ɹ", "x" => "ks", "y" => "j"
     }
   end
 end
