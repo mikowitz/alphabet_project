@@ -1,4 +1,5 @@
 defmodule DynamicsGenerator.V1 do
+  @dynamics ~w(\\ppp \\pp \\p \\mp \\mf \\f \\ff \\fff)
   @polyrhythm_generator PolyrhythmGenerator.V5
 
   def raw_part(letter, pulse) do
@@ -9,6 +10,10 @@ defmodule DynamicsGenerator.V1 do
     @polyrhythm_generator.processed_letter_part(letter, pulse)
   end
 
+  def dynamic_index(dynamic) do
+    Enum.find_index(@dynamics, &(&1 == dynamic))
+  end
+
   def measures(raw_measures) do
     raw_measures
     |> Enum.with_index
@@ -16,6 +21,41 @@ defmodule DynamicsGenerator.V1 do
       density = Measure.density(measure)
       %Measure{measure | dynamic: dynamic_for_float(density, i)}
     end)
+    |> clean_dynamics()
+    |> add_hairpins()
+  end
+
+  def add_hairpins(measures = [m|_]), do: _add_hairpins(measures, m.dynamic, [])
+  def _add_hairpins([], _, acc), do: Enum.reverse(acc)
+  def _add_hairpins([m], _, acc), do: Enum.reverse([m|acc])
+  def _add_hairpins([m,m2|ms], current_dynamic, acc) do
+    next_dynamic = case m2.dynamic do
+      nil -> current_dynamic
+      d -> d
+    end
+    new_m = cond do
+      m2.dynamic == nil -> m #_add_hairpins([m2|ms], next_dynamic, [m|acc])
+      dynamic_index(m2.dynamic) < dynamic_index(current_dynamic) && not(Measure.all_rests?(m)) && not(Measure.all_rests?(m2)) ->
+        %Measure{m | hairpin: ">" }
+      dynamic_index(m2.dynamic) > dynamic_index(current_dynamic) && not(Measure.all_rests?(m)) && not(Measure.all_rests?(m2)) ->
+        %Measure{m | hairpin: "<" }
+      true -> m
+    end
+    _add_hairpins([m2|ms], next_dynamic, [new_m|acc])
+  end
+
+  def clean_dynamics([m|ms]), do: clean_dynamics(ms, m.dynamic, [m])
+
+  def clean_dynamics([], _, acc), do: Enum.reverse(acc)
+  def clean_dynamics([m], _, acc), do: Enum.reverse([m|acc])
+  def clean_dynamics([m,m2|ms], current_dynamic, acc) do
+    case m.dynamic == current_dynamic do
+      true ->
+        m = %Measure{ m | dynamic: nil}
+        clean_dynamics([m2|ms], current_dynamic, [m|acc])
+      false ->
+        clean_dynamics([m2|ms], m.dynamic, [m|acc])
+    end
   end
 
   def dynamic_for_float(density, measure_index) do
