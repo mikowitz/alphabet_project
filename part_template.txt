@@ -1,0 +1,22 @@
+\include "a.ly"
+
+#(set-default-paper-size "11x17")
+#(set-global-staff-size 16)
+
+\paper {
+  system-separator-markup = \slashSeparator
+  system-system-spacing =
+    #'((basic-distance . 25)
+       (minimum-distance . 15)
+       (padding . 3))
+}
+
+\score {
+  \new StaffGroup <<
+    \new Staff \with {
+      \magnifyStaff #5/7
+    } { \aMusic }
+    \new Staff { \bMusic }
+  >>
+}
+
