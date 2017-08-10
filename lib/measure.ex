@@ -43,39 +43,21 @@ defmodule Measure do
   end
 
   def events_to_lily(measure = %__MODULE__{}) do
-    reduce(measure) |> add_markup() |> Map.get(:events) |> Enum.join(" ")
-  end
-
-  def add_markup(measure) do
-    with events <- Enum.with_index(measure.events) do
-      non_rest_indices = Enum.filter(events, fn {e, _i} -> not Regex.match?(~r/^r/, e) end)
-      |> Enum.map(fn {_e, i} -> i end)
-      {first_index, last_index} = Enum.min_max(non_rest_indices)
-
-      add_phoneme(measure, first_index)
-      |> add_dynamics(first_index)
-      |> add_beaming(first_index, last_index)
+    with events <- reduce(measure).events,
+         first_non_rest <- Enum.find(events, fn e -> not Regex.match?(~r/^r/, e) end)
+    do
+      marked_up_event = first_non_rest <> dynamic_markup(measure) <> hairpin_markup(measure) <> phoneme_markup(measure)
+      first_non_rest_index = Enum.find_index(events, &(&1 == first_non_rest))
+      new_events = List.replace_at(events, first_non_rest_index, marked_up_event) |> add_beaming()
+      Enum.join(new_events, " ")
     end
   end
 
-  def add_beaming(measure, first_index, last_index) do
-    with events <- measure.events do
-      new_events = case Enum.all?(events, &Regex.match?(~r/(8|16)\.?$/, &1)) do
-        true -> events |> List.insert_at(last_index + 1, "]") |> List.insert_at(first_index + 1, "[")
-        false -> events
-      end
-      %__MODULE__{ measure | events: new_events }
+  def add_beaming(events) do
+    case Enum.all?(events, &Regex.match?(~r/(8|16)\.?/, &1)) do
+      true -> events |> List.insert_at(1, "[") |> List.insert_at(-1, "]")
+      false -> events
     end
-  end
-
-  def add_dynamics(measure, first_index) do
-    events = List.replace_at(measure.events, first_index, Enum.at(measure.events, first_index) <> dynamic_markup(measure) <> hairpin_markup(measure))
-    %__MODULE__{ measure | events: events }
-  end
-
-  def add_phoneme(measure, first_index) do
-    events = List.replace_at(measure.events, first_index, Enum.at(measure.events, first_index) <> phoneme_markup(measure))
-    %__MODULE__{ measure | events: events }
   end
 
   def hairpin_markup(%__MODULE__{hairpin: nil}), do: ""
@@ -89,7 +71,7 @@ defmodule Measure do
   def dynamic_markup(%__MODULE__{dynamic: nil}), do: ""
   def dynamic_markup(%__MODULE__{dynamic: dynamic}), do: dynamic
 
-  def reduce(measure = %__MODULE__{events: _, tuplet: nil}), do: measure
+  def reduce(measure = %__MODULE__{events: events, tuplet: nil}), do: measure
   def reduce(measure = %__MODULE__{tuplet: {_, _}}) do
     new_events = Enum.map(measure.events, fn e ->
       Regex.replace(~r/\d+$/, e, measure.written_duration)

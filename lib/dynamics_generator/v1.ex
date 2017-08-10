@@ -26,36 +26,34 @@ defmodule DynamicsGenerator.V1 do
   end
 
   def add_hairpins(measures = [m|_]), do: _add_hairpins(measures, m.dynamic, [])
-  def _add_hairpins([], _, acc), do: Enum.reverse(acc)
-  def _add_hairpins([m], _, acc), do: Enum.reverse([m|acc])
-  def _add_hairpins([m,m2|ms], current_dynamic, acc) do
+
+  defp _add_hairpins(l, _, acc) when length(l) <= 1, do: Enum.reverse(l ++ acc)
+  defp _add_hairpins([m,m2|ms], current_dynamic, acc) do
     next_dynamic = case m2.dynamic do
       nil -> current_dynamic
       d -> d
     end
+    either_measure_all_rests = Measure.all_rests?(m) || Measure.all_rests?(m2)
     new_m = cond do
-      m2.dynamic == nil -> m #_add_hairpins([m2|ms], next_dynamic, [m|acc])
-      dynamic_index(m2.dynamic) < dynamic_index(current_dynamic) && not(Measure.all_rests?(m)) && not(Measure.all_rests?(m2)) ->
+      m2.dynamic == nil -> m
+      dynamic_index(m2.dynamic) < dynamic_index(current_dynamic) && not either_measure_all_rests ->
         %Measure{m | hairpin: ">" }
-      dynamic_index(m2.dynamic) > dynamic_index(current_dynamic) && not(Measure.all_rests?(m)) && not(Measure.all_rests?(m2)) ->
+      dynamic_index(m2.dynamic) > dynamic_index(current_dynamic) && not either_measure_all_rests ->
         %Measure{m | hairpin: "<" }
       true -> m
     end
     _add_hairpins([m2|ms], next_dynamic, [new_m|acc])
   end
 
-  def clean_dynamics([m|ms]), do: clean_dynamics(ms, m.dynamic, [m])
-
-  def clean_dynamics([], _, acc), do: Enum.reverse(acc)
-  def clean_dynamics([m], _, acc), do: Enum.reverse([m|acc])
-  def clean_dynamics([m,m2|ms], current_dynamic, acc) do
-    case m.dynamic == current_dynamic do
-      true ->
-        m = %Measure{ m | dynamic: nil}
-        clean_dynamics([m2|ms], current_dynamic, [m|acc])
-      false ->
-        clean_dynamics([m2|ms], m.dynamic, [m|acc])
-    end
+  def clean_dynamics(measures = [m|_]) do
+    new_measures = Enum.chunk_every(measures, 2, 1, :discard)
+    |> Enum.map(fn [m1, m2] ->
+         case m1.dynamic == m2.dynamic do
+           true -> %Measure{ m2 | dynamic: nil }
+           false -> m2
+         end
+    end)
+    [m|new_measures]
   end
 
   def dynamic_for_float(density, measure_index) do

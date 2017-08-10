@@ -194,7 +194,7 @@ defmodule PolyrhythmGenerator.V5 do
   end
 
   def consonant_phoneme_modulation_points(letter) do
-    with consonant_phoneme <- Map.get(consonant_phonemes(), letter, letter) do
+    with consonant_phoneme <- consonant_phoneme_for(letter) do
       PolyrhythmGenerator.ordered_coordinates(letter)
       |> Enum.sort_by(fn {_, y} -> y end)
       |> Enum.with_index
@@ -232,9 +232,15 @@ defmodule PolyrhythmGenerator.V5 do
     }
   end
 
-  def consonant_phonemes do
-    %{
+  def consonant_phoneme_for(letter) do
+    Map.get(%{
       "c" => "k", "j" => "d͡ʒ", "q" => "kʰ", "r" => "ɹ", "x" => "ks", "y" => "j"
-    }
+    }, letter, letter)
   end
 end
+
+#* work on being able to extract clean, legible parts for performers
+#* try to clean up repeated 8th and 16th rests, though this is a tricky task while retaining some semblance of
+    #traditional score legibility (i.e. notating rests on the downbeats of natural measure subdivisions, rather than
+        #willy-nilly)
+
