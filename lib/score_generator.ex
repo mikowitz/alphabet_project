@@ -4,7 +4,7 @@ defmodule ScoreGenerator do
   @dynamics_generator DynamicsGenerator.V1
 
   def generate_parts(pulse) do
-    File.mkdir("score")
+    File.mkdir_p("score/parts")
     Enum.map(@alphabet, fn letter ->
       case letter do
         ^pulse -> pulse_part(pulse)
@@ -19,6 +19,7 @@ defmodule ScoreGenerator do
     |> Enum.map(&Measure.to_lily/1)
     |> Enum.join("\n")
     |> write_to_file(pulse)
+    File.write!("score/parts/#{pulse}.ly", part_template(pulse, pulse))
     {:ok, pulse}
   end
 
@@ -29,6 +30,7 @@ defmodule ScoreGenerator do
     |> Enum.map(&Measure.to_lily/1)
     |> Enum.join("\n")
     |> write_to_file(letter)
+    File.write!("score/parts/#{letter}.ly", part_template(letter, pulse))
     {:ok, letter}
   end
 
@@ -43,6 +45,61 @@ defmodule ScoreGenerator do
   \\bar "|."
 }
 """)
+  end
+
+  defp part_template(pulse, pulse) do
+    """
+\\version "2.19.61"
+\\language "english"
+
+\\include "#{pulse}.ly"
+
+#(set-default-paper-size "11x17")
+#(set-global-staff-size 16)
+
+\\paper {
+  system-separator-markup = \slashSeparator
+  system-system-spacing =
+    #'((basic-distance . 25)
+       (minimum-distance . 15)
+       (padding . 3))
+}
+
+\\score {
+  \\new Staff { \\#{pulse}Music }
+}
+"""
+  end
+
+  defp part_template(letter, pulse) do
+    IO.puts "hello #{letter}"
+    """
+\\version "2.19.61"
+\\language "english"
+
+\\include "../#{pulse}.ly"
+\\include "../#{letter}.ly"
+
+#(set-default-paper-size "11x17")
+#(set-global-staff-size 16)
+
+\\paper {
+  system-separator-markup = \\slashSeparator
+  system-system-spacing =
+    #'((basic-distance . 25)
+       (minimum-distance . 15)
+       (padding . 3))
+}
+
+\\score {
+  \\new StaffGroup <<
+    \\new Staff \\with {
+      \\magnifyStaff #5/7
+    } { \\#{pulse}Music }
+    \\new Staff { \\#{letter}Music }
+  >>
+}
+"""
   end
 end
 
